@@ -1,13 +1,18 @@
+import 'dart:convert';
+import 'dart:developer';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:http/http.dart' as http;
+
 import 'bird.dart';
 import 'photos.dart';
-
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'sounds.dart' as sounds;
 
 Future main() async {
   await dotenv.load(fileName: ".env");
@@ -57,9 +62,18 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-Future<List<Bird>> fetchAlbum() async {
+Future<Bird> fetchBirds() async {
+  LocationData currLoc = await Location().getLocation();
+  double? lat = currLoc.latitude;
+  double? lng = currLoc.longitude;
+  log("hello people");
+  log(lat.toString());
+  //"https://api.ebird.org/v2/data/obs/geo/recent/cangoo?lat=$lat&lng=$lng"
+  //'https://api.ebird.org/v2/data/obs/geo/recent?lat=$lat&lng=$lng&sort=species&maxResults=10000'
+  //'https://api.ebird.org/v2/product/stats/US-OH/2022/3/21'
   final response = await http.get(
-    Uri.parse('https://api.ebird.org/v2/data/obs/IN/recent'),
+    Uri.parse(
+        'https://api.ebird.org/v2/data/obs/geo/recent?lat=$lat&lng=$lng&sort=species&maxResults=10000'),
     headers: {
       'X-eBirdApiToken': dotenv.env['EBIRD_API_KEY'] ?? 'API_KEY not found',
     },
@@ -75,17 +89,60 @@ Future<List<Bird>> fetchAlbum() async {
 
     List<Bird> jsonObjs =
         responseList.map((resp) => Bird.fromJson(resp)).toList();
-    return Future<List<Bird>>.value(jsonObjs);
+
+    var rng = math.Random();
+    late int selectedBird;
+
+    var validBird = false;
+
+    while (!validBird) {
+      selectedBird = rng.nextInt(jsonObjs.length);
+      validBird = await checkBird(jsonObjs[selectedBird], lat, lng);
+      log("testing bird");
+      log(selectedBird.toString());
+    }
+
+    return jsonObjs[selectedBird];
   } else {
     // If the server did not return a 200 OK response,
     // then throw an exception.
+    print(response.body);
     throw Exception('Failed to load album');
+  }
+}
+
+Future<bool> checkBird(Bird bird, double? lat, double? lng) async {
+  var speciesCode = bird.spCode;
+  final response = await http.get(
+    Uri.parse(
+        'https://api.ebird.org/v2/data/obs/geo/recent/$speciesCode?lat=$lat&lng=$lng'),
+    headers: {
+      'X-eBirdApiToken': dotenv.env['EBIRD_API_KEY'] ?? 'API_KEY not found',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    List<Map<String, dynamic>> responseList =
+        (jsonDecode(response.body) as List)
+            .map((e) => e as Map<String, dynamic>)
+            .toList();
+
+    if (responseList.length < 10) {
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    print(response.body);
+    throw Exception('Failed to look up species');
   }
 }
 
 class _MyHomePageState extends State<MyHomePage> {
   late GoogleMapController mapController;
   late AnimationController controller;
+  late AudioPlayer player;
+  late Future<Bird> futureAlbum;
 
   void _onMapCreated(GoogleMapController controller) async {
     var location = Location();
@@ -100,14 +157,25 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _incrementCounter() {}
-
-  late Future<List<Bird>> futureAlbum;
+  void _playAudio(String name) async {
+    final url = await sounds.fetchAudioURL(name);
+    await player.setUrl(url);
+    player.play();
+  }
 
   @override
   void initState() {
     super.initState();
-    futureAlbum = fetchAlbum();
+
+    futureAlbum = fetchBirds();
+    player = AudioPlayer();
+  }
+
+  // disposes audio player and resources when the app closes
+  @override
+  void dispose() {
+    player.dispose();
+    super.dispose();
   }
 
   @override
@@ -123,11 +191,11 @@ class _MyHomePageState extends State<MyHomePage> {
           padding: const EdgeInsets.all(12.0),
           children: <Widget>[
             // Bird Name
-            FutureBuilder<List<Bird>>(
+            FutureBuilder<Bird>(
               future: futureAlbum,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
-                  return BirdNameCard(bird: snapshot.data![2]);
+                  return BirdNameCard(bird: snapshot.data!);
                 } else if (snapshot.hasError) {
                   return Text('${snapshot.error}');
                 }
@@ -135,11 +203,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 return const CircularProgressIndicator();
               },
             ),
-            FutureBuilder<List<Bird>>(
+            FutureBuilder<Bird>(
               future: futureAlbum,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
-                  return BirdPhotoCarousel(bird: snapshot.data![2]);
+                  return BirdPhotoCarousel(bird: snapshot.data!);
                 } else if (snapshot.hasError) {
                   return Text('${snapshot.error}');
                 }
@@ -152,7 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Card(
               child: Row(children: [
                 IconButton(
-                    onPressed: _incrementCounter,
+                    onPressed: () => _playAudio("Wood thrush"),
                     iconSize: 64.0,
                     icon: const Icon(Icons.play_circle)),
               ]),

@@ -8,8 +8,8 @@ import 'bird.dart';
 Future<List<String>> fetchBirdPhotos(Bird bird, int numImages) async {
   String catalogUrl = "https://ebird.org/media/catalog.csv?taxonCode=";
   String assetUrl = "https://cdn.download.ams.birds.cornell.edu/api/v1/asset/";
-  final response = await http
-      .get(Uri.parse(catalogUrl + Uri.encodeComponent(bird.speciesCode)));
+  final response =
+      await http.get(Uri.parse(catalogUrl + Uri.encodeComponent(bird.spCode)));
   if (response.statusCode == 200) {
     List<List<dynamic>> catalog = const CsvToListConverter(
       eol: '\n',
