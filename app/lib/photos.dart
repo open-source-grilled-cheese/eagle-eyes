@@ -6,6 +6,23 @@ import 'package:csv/csv.dart';
 import 'bird.dart';
 
 Future<List<String>> fetchBirdPhotos(Bird bird, int numImages) async {
+  String url =
+      "https://ebird.org/media/api/v1/search?taxonCode=${bird.spCode}&count=100";
+  final response = await http.get(Uri.parse(url));
+  List<String> links = [];
+  if (response.statusCode == 200) {
+    List entries = jsonDecode(response.body)['results']['content'] as List;
+    for (BirdAsset asset
+        in entries.take(numImages).map((e) => BirdAsset.fromJson(e))) {
+      if (asset.mediaType == 'Photo') {
+        links.add(asset.url);
+      }
+    }
+  }
+  return links;
+}
+
+Future<List<String>> fetchBirdPhotosCSV(Bird bird, int numImages) async {
   String catalogUrl = "https://ebird.org/media/catalog.csv?taxonCode=";
   String assetUrl = "https://cdn.download.ams.birds.cornell.edu/api/v1/asset/";
   final response =
@@ -35,6 +52,22 @@ Future<List<String>> fetchBirdPhotos(Bird bird, int numImages) async {
   return [
     "https://www.how-to-draw-funny-cartoons.com/images/cartoon-bird-007.jpg"
   ];
+}
+
+class BirdAsset {
+  final String url;
+  final String mediaType;
+
+  BirdAsset(this.url, this.mediaType);
+
+  BirdAsset.fromJson(Map<String, dynamic> json)
+      : url = json['mediaUrl'],
+        mediaType = json['mediaType'];
+
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        'mediaType': mediaType,
+      };
 }
 
 class WikiFile {

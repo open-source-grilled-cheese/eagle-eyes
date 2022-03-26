@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'bird.dart';
 import 'photos.dart';
 import 'sounds.dart' as sounds;
+import 'info.dart';
 
 Future main() async {
   await dotenv.load(fileName: ".env");
@@ -143,6 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late AnimationController controller;
   late AudioPlayer player;
   late Future<Bird> futureAlbum;
+  late Future<String> description;
 
   void _onMapCreated(GoogleMapController controller) async {
     var location = Location();
@@ -168,6 +170,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     futureAlbum = fetchBirds();
+    description = fetchBirdInfo(futureAlbum);
     player = AudioPlayer();
   }
 
@@ -214,6 +217,20 @@ class _MyHomePageState extends State<MyHomePage> {
                 // By default, show a loading spinner.
                 return const CircularProgressIndicator();
               },
+            ),
+            Card(
+              child: FutureBuilder<String>(
+                future: description,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return Text(snapshot.data!);
+                  } else if (snapshot.hasError) {
+                    return Text('${snapshot.error}');
+                  }
+                  // By default, show a loading spinner.
+                  return const CircularProgressIndicator();
+                },
+              ),
             ),
             // Bird Photo
             // Birdcall Player
@@ -320,11 +337,17 @@ class _BirdPhotoCarouselState extends State<BirdPhotoCarousel> {
                 ];
               }
               return CarouselSlider(
-                options: CarouselOptions(height: 300.0, viewportFraction: 0.9),
+                options: CarouselOptions(
+                    height: 400,
+                    viewportFraction: 0.9,
+                    enlargeCenterPage: false),
                 items: links.map((link) {
                   return Builder(
                     builder: (BuildContext context) {
-                      return Image(image: NetworkImage(link));
+                      return Image.network(
+                        link,
+                        fit: BoxFit.cover,
+                      );
                     },
                   );
                 }).toList(),
