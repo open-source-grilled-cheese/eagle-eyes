@@ -18,6 +18,7 @@ import 'bird.dart';
 import 'photos.dart';
 import 'sounds.dart' as sounds;
 import 'info.dart';
+import 'button.dart';
 
 Future main() async {
   await Hive.initFlutter();
@@ -307,17 +308,20 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             ),
             Card(
-              child: FutureBuilder<String>(
-                future: description,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Text(snapshot.data!);
-                  } else if (snapshot.hasError) {
-                    return Text('${snapshot.error}');
-                  }
-                  // By default, show a loading spinner.
-                  return const CircularProgressIndicator();
-                },
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: FutureBuilder<String>(
+                  future: description,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return Text(snapshot.data!);
+                    } else if (snapshot.hasError) {
+                      return Text('${snapshot.error}');
+                    }
+                    // By default, show a loading spinner.
+                    return const CircularProgressIndicator();
+                  },
+                ),
               ),
             ),
             // Bird Photo
@@ -326,7 +330,6 @@ class _MyHomePageState extends State<MyHomePage> {
               future: futureAlbum,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
-                  print('begin printing the audio card');
                   _setUpAudio(snapshot.data!.sciName);
                   return Card(
                     child: Padding(
@@ -343,13 +346,6 @@ class _MyHomePageState extends State<MyHomePage> {
                         ],
                       ),
                     ),
-
-                    // child: Row(children: [
-                    //   IconButton(
-                    //       onPressed: () => _playAudio(snapshot.data!.sciName),
-                    //       iconSize: 64.0,
-                    //       icon: const Icon(Icons.play_circle)),
-                    // ]),
                   );
                 } else if (snapshot.hasError) {
                   return Text('${snapshot.error}');
@@ -369,10 +365,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     const CameraPosition(target: LatLng(0, 0), zoom: 3),
               )),
             ),
-            Text(
-              'More Data Here',
-              style: Theme.of(context).textTheme.headline4,
-            ),
+            const FoundButton(),
           ],
         ),
       ),
@@ -506,7 +499,7 @@ class _BirdPhotoCarouselState extends State<BirdPhotoCarousel> {
   @override
   void initState() {
     super.initState();
-    imageLinks = fetchBirdPhotos(widget.bird, 3);
+    imageLinks = fetchBirdPhotos(widget.bird, 5);
   }
 
   @override
