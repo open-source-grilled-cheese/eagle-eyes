@@ -9,14 +9,46 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'bird.dart';
 import 'photos.dart';
 import 'sounds.dart' as sounds;
 
 Future main() async {
+  await Hive.initFlutter();
+  await Hive.openBox('localstorage');
   await dotenv.load(fileName: ".env");
+
+  var box = Hive.box('localstorage');
+  print("Hello there");
+  print(box.get('suggestedBirds').keys.toString());
+  if (box.get('suggestedBirds') == null) {
+    box.put('suggestedBirds', Map());
+  }
+  if (box.get('date') == null) {
+    box.put('date', DateTime.now());
+  }
+  if (box.get('tmpBirds') == null) {
+    box.put('tmpBirds', Map());
+  }
+  //Check to see if day has passed to update local storage
+  if (box.get('date').day != DateTime.now().day) {
+    box.put('date', DateTime.now());
+    updateStoredBirds(box);
+  }
+
   runApp(const MyApp());
+}
+
+void updateStoredBirds(box) {
+  Map<String, int> storedBirds = box.get('suggestedBirds');
+  storedBirds.updateAll((key, value) => value + 1);
+  storedBirds.removeWhere((key, value) => value > 14);
+  box.put('suggestedBirds', storedBirds);
 }
 
 class MyApp extends StatelessWidget {
@@ -95,11 +127,23 @@ Future<Bird> fetchBirds() async {
 
     var validBird = false;
 
+    var box = Hive.box('localstorage');
+
+    box.put('tmpBirds', Map<String, int>.from(box.get('suggestedBirds')));
+    List<int> blacklist = [];
     while (!validBird) {
       selectedBird = rng.nextInt(jsonObjs.length);
-      validBird = await checkBird(jsonObjs[selectedBird], lat, lng);
+      while (blacklist.contains(selectedBird)) {
+        selectedBird = rng.nextInt(jsonObjs.length);
+      }
+      validBird = await checkBird(jsonObjs[selectedBird], lat, lng, box);
+      blacklist.add(selectedBird);
       log("testing bird");
       log(selectedBird.toString());
+
+      if (box.get('tmpBirds').isEmpty && box.get('suggestedBirds').isNotEmpty) {
+        blacklist = [];
+      }
     }
 
     return jsonObjs[selectedBird];
@@ -111,7 +155,7 @@ Future<Bird> fetchBirds() async {
   }
 }
 
-Future<bool> checkBird(Bird bird, double? lat, double? lng) async {
+Future<bool> checkBird(Bird bird, double? lat, double? lng, box) async {
   var speciesCode = bird.spCode;
   final response = await http.get(
     Uri.parse(
@@ -122,14 +166,23 @@ Future<bool> checkBird(Bird bird, double? lat, double? lng) async {
   );
 
   if (response.statusCode == 200) {
+    Map<String, int> tmpBirds = box.get('tmpBirds');
     List<Map<String, dynamic>> responseList =
         (jsonDecode(response.body) as List)
             .map((e) => e as Map<String, dynamic>)
             .toList();
 
-    if (responseList.length < 10) {
+    Map birdList = box.get('suggestedBirds');
+    if ((responseList.length < 10 || birdList.containsKey(speciesCode)) &&
+        (tmpBirds.isNotEmpty || box.get('suggestedBirds').isEmpty)) {
+      if (birdList.containsKey(speciesCode)) {
+        tmpBirds.removeWhere((key, value) => key == speciesCode);
+        box.put('tmpBirds', tmpBirds);
+      }
       return false;
     } else {
+      birdList[speciesCode] = 1;
+      box.put('suggestedBirds', birdList);
       return true;
     }
   } else {
