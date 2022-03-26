@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:location/location.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,9 +25,9 @@ class MyApp extends StatelessWidget {
         // or simply save your changes to "hot reload" in a Flutter IDE).
         // Notice that the counter didn't reset back to zero; the application
         // is not restarted.
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.teal,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Eagle Eyes: Bird of the Day'),
     );
   }
 }
@@ -48,6 +51,22 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late GoogleMapController mapController;
+  late AnimationController controller;
+
+  void _onMapCreated(GoogleMapController controller) async {
+    var location = Location();
+    final currentLocation = await location.getLocation();
+    controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+            target:
+                LatLng(currentLocation.latitude!, currentLocation.longitude!),
+            zoom: 15),
+      ),
+    );
+  }
+
   int _counter = 0;
 
   void _incrementCounter() {
@@ -78,25 +97,68 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: ListView(
+          padding: const EdgeInsets.all(12.0),
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+            // Bird Name
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0),
+                child: Column(
+                  children: const <Widget>[
+                    Text(
+                      'Ferruginous Pygmy-Owl',
+                      textScaleFactor: 2.0,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Glaucidium brasilianum',
+                      textScaleFactor: 1.5,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    )
+                  ],
+                ),
+              ),
+            ),
+            // Bird Photo
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CarouselSlider(
+                  options: CarouselOptions(height: 300.0),
+                  items: [
+                    'https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg'
+                  ].map((link) {
+                    return Builder(
+                      builder: (BuildContext context) {
+                        return Image(image: NetworkImage(link));
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            // Birdcall Player
+            Card(
+              child: Row(children: [
+                IconButton(
+                    onPressed: _incrementCounter,
+                    iconSize: 64.0,
+                    icon: const Icon(Icons.play_circle)),
+              ]),
+            ),
+            SizedBox(
+              height: 500,
+              child: Card(
+                  child: GoogleMap(
+                onMapCreated: _onMapCreated,
+                padding: const EdgeInsets.all(8.0),
+                myLocationEnabled: true,
+                initialCameraPosition:
+                    const CameraPosition(target: LatLng(0, 0), zoom: 3),
+              )),
             ),
             Text(
               '$_counter',
