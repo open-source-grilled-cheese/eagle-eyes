@@ -111,90 +111,95 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      // Center is a layout widget. It takes a single child and positions it
-      // in the middle of the parent.
-      child: ListView(
-        padding: const EdgeInsets.all(12.0),
-        children: <Widget>[
-          // Bird Name
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: Column(
-                children: const <Widget>[
-                  Text(
-                    'Ferruginous Pygmy-Owl',
-                    textScaleFactor: 2.0,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Glaucidium brasilianum',
-                    textScaleFactor: 1.5,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  )
-                ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+      ),
+      body: Center(
+        // Center is a layout widget. It takes a single child and positions it
+        // in the middle of the parent.
+        child: ListView(
+          padding: const EdgeInsets.all(12.0),
+          children: <Widget>[
+            // Bird Name
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0),
+                child: Column(
+                  children: const <Widget>[
+                    Text(
+                      'Ferruginous Pygmy-Owl',
+                      textScaleFactor: 2.0,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Glaucidium brasilianum',
+                      textScaleFactor: 1.5,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    )
+                  ],
+                ),
               ),
             ),
-          ),
-          FutureBuilder<List<Bird>>(
-            future: futureAlbum,
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                return Text(snapshot.data![0].comName);
-              } else if (snapshot.hasError) {
-                return Text('${snapshot.error}');
-              }
+            FutureBuilder<List<Bird>>(
+              future: futureAlbum,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return Text(snapshot.data![0].comName);
+                } else if (snapshot.hasError) {
+                  return Text('${snapshot.error}');
+                }
 
-              // By default, show a loading spinner.
-              return const CircularProgressIndicator();
-            },
-          ),
-          // Bird Photo
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: CarouselSlider(
-                options: CarouselOptions(height: 300.0),
-                items: [
-                  'https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg'
-                ].map((link) {
-                  return Builder(
-                    builder: (BuildContext context) {
-                      return Image(image: NetworkImage(link));
-                    },
-                  );
-                }).toList(),
+                // By default, show a loading spinner.
+                return const CircularProgressIndicator();
+              },
+            ),
+            // Bird Photo
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CarouselSlider(
+                  options: CarouselOptions(height: 300.0),
+                  items: [
+                    'https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg'
+                  ].map((link) {
+                    return Builder(
+                      builder: (BuildContext context) {
+                        return Image(image: NetworkImage(link));
+                      },
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-          ),
-          // Birdcall Player
-          Card(
-            child: Row(children: [
-              IconButton(
-                  onPressed: _incrementCounter,
-                  iconSize: 64.0,
-                  icon: const Icon(Icons.play_circle)),
-            ]),
-          ),
-          SizedBox(
-            height: 500,
-            child: Card(
-                child: GoogleMap(
-              onMapCreated: _onMapCreated,
-              padding: const EdgeInsets.all(8.0),
-              myLocationEnabled: true,
-              initialCameraPosition:
-                  const CameraPosition(target: LatLng(0, 0), zoom: 3),
-            )),
-          ),
-          Text(
-            'More Data Here',
-            style: Theme.of(context).textTheme.headline4,
-          ),
-        ],
+            // Birdcall Player
+            Card(
+              child: Row(children: [
+                IconButton(
+                    onPressed: _incrementCounter,
+                    iconSize: 64.0,
+                    icon: const Icon(Icons.play_circle)),
+              ]),
+            ),
+            SizedBox(
+              height: 500,
+              child: Card(
+                  child: GoogleMap(
+                onMapCreated: _onMapCreated,
+                padding: const EdgeInsets.all(8.0),
+                myLocationEnabled: true,
+                initialCameraPosition:
+                    const CameraPosition(target: LatLng(0, 0), zoom: 3),
+              )),
+            ),
+            Text(
+              'More Data Here',
+              style: Theme.of(context).textTheme.headline4,
+            ),
+          ],
+        ),
       ),
     );
   }
