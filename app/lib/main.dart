@@ -8,6 +8,8 @@ import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:http/http.dart' as http;
 
 import 'bird.dart';
@@ -42,6 +44,16 @@ class MyApp extends StatelessWidget {
       home: const MyHomePage(title: 'Eagle Eyes: Bird of the Day'),
     );
   }
+}
+
+var themeNotifier = ValueNotifier<ThemeVariation>(
+  const ThemeVariation(Colors.blue, Brightness.light),
+);
+
+class ThemeVariation {
+  const ThemeVariation(this.color, this.brightness);
+  final MaterialColor color;
+  final Brightness brightness;
 }
 
 class MyHomePage extends StatefulWidget {
@@ -141,7 +153,24 @@ Future<bool> checkBird(Bird bird, double? lat, double? lng) async {
 class _MyHomePageState extends State<MyHomePage> {
   late GoogleMapController mapController;
   late AnimationController controller;
+  // audio player variables
   late AudioPlayer player;
+  late Stream<DurationState> durationState;
+  final _isShowingWidgetOutline = false;
+  final _labelLocation = TimeLabelLocation.below;
+  final _labelType = TimeLabelType.totalTime;
+  TextStyle? _labelStyle;
+  final _thumbRadius = 10.0;
+  final _labelPadding = 0.0;
+  final _barHeight = 5.0;
+  final _barCapShape = BarCapShape.round;
+  Color? _baseBarColor;
+  Color? _progressBarColor;
+  Color? _bufferedBarColor;
+  Color? _thumbColor;
+  Color? _thumbGlowColor;
+  final _thumbCanPaintOutsideBar = true;
+
   late Future<Bird> futureAlbum;
 
   void _onMapCreated(GoogleMapController controller) async {
@@ -157,10 +186,9 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _playAudio(String name) async {
+  void _setUpAudio(String name) async {
     final url = await sounds.fetchAudioURL(name);
     await player.setUrl(url);
-    player.play();
   }
 
   @override
@@ -169,6 +197,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
     futureAlbum = fetchBirds();
     player = AudioPlayer();
+    durationState = Rx.combineLatest2<Duration, PlaybackEvent, DurationState>(
+        player.positionStream,
+        player.playbackEventStream,
+        (position, playbackEvent) => DurationState(
+              progress: position,
+              buffered: playbackEvent.bufferedPosition,
+              total: playbackEvent.duration,
+            )); // warning: example does more than this, including setting the URL here.. this could cause issues later
   }
 
   // disposes audio player and resources when the app closes
@@ -203,6 +239,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return const CircularProgressIndicator();
               },
             ),
+
             FutureBuilder<Bird>(
               future: futureAlbum,
               builder: (context, snapshot) {
@@ -221,13 +258,30 @@ class _MyHomePageState extends State<MyHomePage> {
               future: futureAlbum,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
+                  print('begin printing the audio card');
+                  _setUpAudio(snapshot.data!.sciName);
                   return Card(
-                    child: Row(children: [
-                      IconButton(
-                          onPressed: () => _playAudio(snapshot.data!.sciName),
-                          iconSize: 64.0,
-                          icon: const Icon(Icons.play_circle)),
-                    ]),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(height: 20),
+                          Container(
+                            decoration: _widgetBorder(),
+                            child: _progressBar(),
+                          ),
+                          _playButton(),
+                        ],
+                      ),
+                    ),
+
+                    // child: Row(children: [
+                    //   IconButton(
+                    //       onPressed: () => _playAudio(snapshot.data!.sciName),
+                    //       iconSize: 64.0,
+                    //       icon: const Icon(Icons.play_circle)),
+                    // ]),
                   );
                 } else if (snapshot.hasError) {
                   return Text('${snapshot.error}');
@@ -254,6 +308,88 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
+    );
+  }
+
+  BoxDecoration _widgetBorder() {
+    return BoxDecoration(
+      border: _isShowingWidgetOutline
+          ? Border.all(color: Colors.red)
+          : Border.all(color: Colors.transparent),
+    );
+  }
+
+  StreamBuilder<DurationState> _progressBar() {
+    return StreamBuilder<DurationState>(
+      stream: durationState,
+      builder: (context, snapshot) {
+        final durationState = snapshot.data;
+        final progress = durationState?.progress ?? Duration.zero;
+        final buffered = durationState?.buffered ?? Duration.zero;
+        final total = durationState?.total ?? Duration.zero;
+        return ProgressBar(
+          progress: progress,
+          buffered: buffered,
+          total: total,
+          onSeek: (duration) {
+            player.seek(duration);
+          },
+          onDragUpdate: (details) {
+            debugPrint('${details.timeStamp}, ${details.localPosition}');
+          },
+          barHeight: _barHeight,
+          baseBarColor: _baseBarColor,
+          progressBarColor: _progressBarColor,
+          bufferedBarColor: _bufferedBarColor,
+          thumbColor: _thumbColor,
+          thumbGlowColor: _thumbGlowColor,
+          barCapShape: _barCapShape,
+          thumbRadius: _thumbRadius,
+          thumbCanPaintOutsideBar: _thumbCanPaintOutsideBar,
+          timeLabelLocation: _labelLocation,
+          timeLabelType: _labelType,
+          timeLabelTextStyle: _labelStyle,
+          timeLabelPadding: _labelPadding,
+        );
+      },
+    );
+  }
+
+  StreamBuilder<PlayerState> _playButton() {
+    return StreamBuilder<PlayerState>(
+      stream: player.playerStateStream,
+      builder: (context, snapshot) {
+        final playerState = snapshot.data;
+        final processingState = playerState?.processingState;
+        final playing = playerState?.playing;
+        if (processingState == ProcessingState.loading ||
+            processingState == ProcessingState.buffering) {
+          return Container(
+            margin: const EdgeInsets.all(8.0),
+            width: 50.0,
+            height: 50.0,
+            child: const CircularProgressIndicator(),
+          );
+        } else if (playing != true) {
+          return IconButton(
+            icon: const Icon(Icons.play_arrow),
+            iconSize: 50.0,
+            onPressed: player.play,
+          );
+        } else if (processingState != ProcessingState.completed) {
+          return IconButton(
+            icon: const Icon(Icons.pause),
+            iconSize: 50.0,
+            onPressed: player.pause,
+          );
+        } else {
+          return IconButton(
+            icon: const Icon(Icons.replay),
+            iconSize: 50.0,
+            onPressed: () => player.seek(Duration.zero),
+          );
+        }
+      },
     );
   }
 }
@@ -331,4 +467,15 @@ class _BirdPhotoCarouselState extends State<BirdPhotoCarousel> {
               );
             }));
   }
+}
+
+class DurationState {
+  const DurationState({
+    required this.progress,
+    required this.buffered,
+    this.total,
+  });
+  final Duration progress;
+  final Duration buffered;
+  final Duration? total;
 }
