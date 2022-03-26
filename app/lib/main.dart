@@ -4,6 +4,7 @@ import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'bird.dart';
+import 'photos.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -122,58 +123,31 @@ class _MyHomePageState extends State<MyHomePage> {
           padding: const EdgeInsets.all(12.0),
           children: <Widget>[
             // Bird Name
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0),
-                child: Column(
-                  children: const <Widget>[
-                    Text(
-                      'Ferruginous Pygmy-Owl',
-                      textScaleFactor: 2.0,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Glaucidium brasilianum',
-                      textScaleFactor: 1.5,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontStyle: FontStyle.italic),
-                    )
-                  ],
-                ),
-              ),
+            FutureBuilder<List<Bird>>(
+              future: futureAlbum,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return BirdNameCard(bird: snapshot.data![2]);
+                } else if (snapshot.hasError) {
+                  return Text('${snapshot.error}');
+                }
+                // By default, show a loading spinner.
+                return const CircularProgressIndicator();
+              },
             ),
             FutureBuilder<List<Bird>>(
               future: futureAlbum,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
-                  return Text(snapshot.data![0].comName);
+                  return BirdPhotoCarousel(bird: snapshot.data![2]);
                 } else if (snapshot.hasError) {
                   return Text('${snapshot.error}');
                 }
-
                 // By default, show a loading spinner.
                 return const CircularProgressIndicator();
               },
             ),
             // Bird Photo
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CarouselSlider(
-                  options: CarouselOptions(height: 300.0),
-                  items: [
-                    'https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg'
-                  ].map((link) {
-                    return Builder(
-                      builder: (BuildContext context) {
-                        return Image(image: NetworkImage(link));
-                      },
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
             // Birdcall Player
             Card(
               child: Row(children: [
@@ -202,5 +176,80 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
+  }
+}
+
+class BirdNameCard extends StatelessWidget {
+  final Bird bird;
+  const BirdNameCard({Key? key, required this.bird}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24.0),
+        child: Column(
+          children: <Widget>[
+            Text(
+              bird.comName,
+              textScaleFactor: 2.0,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              bird.sciName,
+              textScaleFactor: 1.5,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontStyle: FontStyle.italic),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BirdPhotoCarousel extends StatefulWidget {
+  final Bird bird;
+  const BirdPhotoCarousel({Key? key, required this.bird}) : super(key: key);
+
+  @override
+  State<BirdPhotoCarousel> createState() => _BirdPhotoCarouselState();
+}
+
+class _BirdPhotoCarouselState extends State<BirdPhotoCarousel> {
+  late Future<List<String>> imageLinks;
+
+  @override
+  void initState() {
+    super.initState();
+    imageLinks = fetchBirdPhotos(widget.bird, 3);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+        child: FutureBuilder<List<String>>(
+            future: imageLinks,
+            builder: (context, snapshot) {
+              List<String> links;
+              if (snapshot.hasData) {
+                links = snapshot.data!;
+              } else {
+                links = [
+                  'https://media2.giphy.com/media/3oEjI6SIIHBdRxXI40/200w.gif?cid=82a1493b888pllhrj3fgn9h5qtcid63crmatt4rfjk7s3j37&rid=200w.gif&ct=g'
+                ];
+              }
+              return CarouselSlider(
+                options: CarouselOptions(height: 300.0, viewportFraction: 0.9),
+                items: links.map((link) {
+                  return Builder(
+                    builder: (BuildContext context) {
+                      return Image(image: NetworkImage(link));
+                    },
+                  );
+                }).toList(),
+              );
+            }));
   }
 }
