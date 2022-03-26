@@ -7,7 +7,6 @@ import 'bird.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:io';
 
 Future main() async {
   await dotenv.load(fileName: ".env");

@@ -19,7 +19,6 @@ class WikiFile {
 }
 
 Future<List<String>> fetchBirdPhotos(String name) async {
-  print("getting bird photos");
   String url =
       'https://commons.wikimedia.org/w/api.php?action=query&format=json&list=search&srnamespace=6|0&srsearch=';
   final response = await http.get(Uri.parse(url + Uri.encodeComponent(name)));
@@ -55,8 +54,4 @@ Future<String> fetchPhotoUrl(WikiFile file) async {
   } else {
     return "";
   }
-}
-
-void main() async {
-  print(await fetchBirdPhotos("Gavia stellata"));
 }
