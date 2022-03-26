@@ -11,9 +11,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'bird.dart';
@@ -28,7 +26,7 @@ Future main() async {
 
   var box = Hive.box('localstorage');
   print("Hello there");
-  print(box.get('suggestedBirds').keys.toString());
+  // print(box.get('suggestedBirds').keys.toString());
   if (box.get('suggestedBirds') == null) {
     box.put('suggestedBirds', Map());
   }
