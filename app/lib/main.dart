@@ -4,9 +4,12 @@ import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'bird.dart';
+import 'package:just_audio/just_audio.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'sounds.dart' as sounds;
 
 Future main() async {
   await dotenv.load(fileName: ".env");
@@ -85,6 +88,7 @@ Future<List<Bird>> fetchAlbum() async {
 class _MyHomePageState extends State<MyHomePage> {
   late GoogleMapController mapController;
   late AnimationController controller;
+  late AudioPlayer player;
 
   void _onMapCreated(GoogleMapController controller) async {
     var location = Location();
@@ -99,7 +103,11 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _incrementCounter() {}
+  void _playAudio(String name) async {
+    final url = await sounds.fetchAudioURL(name);
+    await player.setUrl(url);
+    player.play();
+  }
 
   late Future<List<Bird>> futureAlbum;
 
@@ -107,6 +115,14 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     futureAlbum = fetchAlbum();
+    player = AudioPlayer();
+  }
+
+  // disposes audio player and resources when the app closes
+  @override
+  void dispose() {
+    player.dispose();
+    super.dispose();
   }
 
   @override
@@ -178,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Card(
               child: Row(children: [
                 IconButton(
-                    onPressed: _incrementCounter,
+                    onPressed: () => _playAudio("Wood thrush"),
                     iconSize: 64.0,
                     icon: const Icon(Icons.play_circle)),
               ]),

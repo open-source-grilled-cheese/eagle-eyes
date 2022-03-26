@@ -42,6 +42,7 @@ dependencies:
   google_maps_flutter_web: ^0.3.2+1
   flutter_dotenv: ^5.0.2
   dotenv: ^3.0.0
+  just_audio: ^0.9.13
 
 dev_dependencies:
   flutter_test:
