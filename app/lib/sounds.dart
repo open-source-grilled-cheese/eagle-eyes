@@ -11,7 +11,14 @@ Future<String> fetchAudioURL(String name) async {
     if (data['numRecordings'] == 0) {
       print("no recording found for bird");
     } else {
-      return data['recordings'][0]['file'];
+      for (var r in data['recordings']) {
+        if (r['quality'] == "A") {
+          return r['file'];
+        }
+      }
+      // none ranked A, so just give first
+      return data['recordings'][0]
+          ['file']; // gets the first call (they are sorted by quality)
     }
   }
 
