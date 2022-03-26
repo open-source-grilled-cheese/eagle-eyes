@@ -217,13 +217,24 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             // Bird Photo
             // Birdcall Player
-            Card(
-              child: Row(children: [
-                IconButton(
-                    onPressed: () => _playAudio("Wood thrush"),
-                    iconSize: 64.0,
-                    icon: const Icon(Icons.play_circle)),
-              ]),
+            FutureBuilder<Bird>(
+              future: futureAlbum,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return Card(
+                    child: Row(children: [
+                      IconButton(
+                          onPressed: () => _playAudio(snapshot.data!.sciName),
+                          iconSize: 64.0,
+                          icon: const Icon(Icons.play_circle)),
+                    ]),
+                  );
+                } else if (snapshot.hasError) {
+                  return Text('${snapshot.error}');
+                }
+                // By default, show a loading spinner.
+                return const CircularProgressIndicator();
+              },
             ),
             SizedBox(
               height: 500,
