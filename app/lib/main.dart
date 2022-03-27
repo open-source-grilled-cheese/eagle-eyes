@@ -10,6 +10,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:after_layout/after_layout.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:hive_flutter/hive_flutter.dart';
@@ -47,9 +48,9 @@ Future main() async {
 }
 
 void updateStoredBirds(box) {
-  Map<String, int> storedBirds = box.get('suggestedBirds');
+  var storedBirds = box.get('suggestedBirds');
   storedBirds.updateAll((key, value) => value + 1);
-  storedBirds.removeWhere((key, value) => value > 14);
+  storedBirds.removeWhere((key, value) => (value > 14) as bool);
   box.put('suggestedBirds', storedBirds);
 }
 
@@ -103,6 +104,14 @@ class MyHomePage extends StatefulWidget {
   final String title;
 
   @override
+  void afterFirstLayout(BuildContext context) {
+    // Calling the same function "after layout" to resolve the issue.
+    Navigator.pop(context); // pop current page
+    Navigator.pushNamed(context, "Setting");
+    Navigator.popAndPushNamed(context, '/screenname');
+  }
+
+  @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
@@ -123,9 +132,11 @@ Future<Bird> fetchBirds() async {
     },
   );
 
+  log("it's ya boi");
   if (response.statusCode == 200) {
     // If the server did return a 200 OK response,
     // then parse the JSON.
+    log("Hey there");
     List<Map<String, dynamic>> responseList =
         (jsonDecode(response.body) as List)
             .map((e) => e as Map<String, dynamic>)
@@ -137,28 +148,31 @@ Future<Bird> fetchBirds() async {
     var rng = math.Random();
     late int selectedBird;
 
-    var validBird = false;
+    Bird testBird = jsonObjs[0];
 
     var box = Hive.box('localstorage');
 
+    var suggestedBirds = box.get('suggestedBirds');
+    Map<String, int> blacklist = Map();
+
     box.put('tmpBirds', Map<String, int>.from(box.get('suggestedBirds')));
-    List<int> blacklist = [];
-    while (!validBird) {
+    log("time to test");
+    while (!testBird.validBird) {
       selectedBird = rng.nextInt(jsonObjs.length);
-      while (blacklist.contains(selectedBird)) {
+      while (blacklist.keys.contains(selectedBird)) {
         selectedBird = rng.nextInt(jsonObjs.length);
       }
-      validBird = await checkBird(jsonObjs[selectedBird], lat, lng, box);
-      blacklist.add(selectedBird);
+      testBird = await checkBird(jsonObjs[selectedBird], lat, lng, box);
+      log(testBird.coords[0].toString());
+      blacklist[testBird.spCode] = selectedBird;
       log("testing bird");
       log(selectedBird.toString());
 
       if (box.get('tmpBirds').isEmpty && box.get('suggestedBirds').isNotEmpty) {
-        blacklist = [];
+        blacklist = Map();
       }
     }
-
-    return jsonObjs[selectedBird];
+    return testBird;
   } else {
     // If the server did not return a 200 OK response,
     // then throw an exception.
@@ -167,7 +181,7 @@ Future<Bird> fetchBirds() async {
   }
 }
 
-Future<bool> checkBird(Bird bird, double? lat, double? lng, box) async {
+Future<Bird> checkBird(Bird bird, double? lat, double? lng, box) async {
   var speciesCode = bird.spCode;
   final response = await http.get(
     Uri.parse(
@@ -184,19 +198,27 @@ Future<bool> checkBird(Bird bird, double? lat, double? lng, box) async {
             .map((e) => e as Map<String, dynamic>)
             .toList();
 
+    var birdMarkers = [];
+    responseList
+        .forEach((map) => birdMarkers.add(LatLng(map['lat'], map['lng'])));
+
+    log(birdMarkers.toString());
+    bird.coords = List<LatLng>.from(birdMarkers);
+
     Map birdList = box.get('suggestedBirds');
-    if ((responseList.length < 10 || birdList.containsKey(speciesCode)) &&
-        (tmpBirds.isNotEmpty || box.get('suggestedBirds').isEmpty)) {
+    if (responseList.length < 10) {
       if (birdList.containsKey(speciesCode)) {
         tmpBirds.removeWhere((key, value) => key == speciesCode);
         box.put('tmpBirds', tmpBirds);
       }
-      return false;
+      bird.validBird = false;
     } else {
       birdList[speciesCode] = 1;
       box.put('suggestedBirds', birdList);
-      return true;
+      var numMarkers = math.min(responseList.length, 10);
+      bird.validBird = true;
     }
+    return bird;
   } else {
     print(response.body);
     throw Exception('Failed to look up species');
@@ -204,6 +226,7 @@ Future<bool> checkBird(Bird bird, double? lat, double? lng, box) async {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  var box = Hive.box("localstorage");
   late GoogleMapController mapController;
   late AnimationController controller;
   // audio player variables
@@ -223,9 +246,12 @@ class _MyHomePageState extends State<MyHomePage> {
   Color? _thumbColor;
   Color? _thumbGlowColor;
   final _thumbCanPaintOutsideBar = true;
+  final birdPos = LatLng(37.416000, -122.077000);
 
   late Future<Bird> futureAlbum;
   late Future<String> description;
+
+  Set<Marker> markers = Set();
 
   void _onMapCreated(GoogleMapController controller) async {
     var location = Location();
@@ -238,6 +264,7 @@ class _MyHomePageState extends State<MyHomePage> {
             zoom: 15),
       ),
     );
+    controller.setMapStyle("[]");
   }
 
   void _setUpAudio(String name) async {
@@ -285,6 +312,8 @@ class _MyHomePageState extends State<MyHomePage> {
             FutureBuilder<Bird>(
               future: futureAlbum,
               builder: (context, snapshot) {
+                log("log here");
+                //log(snapshot.data!.coords[0].toString());
                 if (snapshot.hasData) {
                   return BirdNameCard(bird: snapshot.data!);
                 } else if (snapshot.hasError) {
@@ -330,6 +359,50 @@ class _MyHomePageState extends State<MyHomePage> {
               future: futureAlbum,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
+                  log("check coords...");
+                  log(snapshot.data!.coords[0].toString());
+                  markers.addAll([
+                    Marker(
+                      markerId: MarkerId('value0'),
+                      position: snapshot.data!.coords[0],
+                    ),
+                    Marker(
+                      markerId: MarkerId('value2'),
+                      position: snapshot.data!.coords[1],
+                    ),
+                    Marker(
+                      markerId: MarkerId('value3'),
+                      position: snapshot.data!.coords[3],
+                    ),
+                    Marker(
+                      markerId: MarkerId('value4'),
+                      position: snapshot.data!.coords[3],
+                    ),
+                    Marker(
+                      markerId: MarkerId('valu5'),
+                      position: snapshot.data!.coords[4],
+                    ),
+                    Marker(
+                      markerId: MarkerId('value6'),
+                      position: snapshot.data!.coords[5],
+                    ),
+                    Marker(
+                      markerId: MarkerId('value7'),
+                      position: snapshot.data!.coords[6],
+                    ),
+                    Marker(
+                      markerId: MarkerId('value8'),
+                      position: snapshot.data!.coords[7],
+                    ),
+                    Marker(
+                      markerId: MarkerId('value9'),
+                      position: snapshot.data!.coords[9],
+                    ),
+                    Marker(
+                      markerId: MarkerId('value10'),
+                      position: snapshot.data!.coords[9],
+                    )
+                  ]);
                   _setUpAudio(snapshot.data!.sciName);
                   return Card(
                     child: Padding(
@@ -361,6 +434,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 onMapCreated: _onMapCreated,
                 padding: const EdgeInsets.all(8.0),
                 myLocationEnabled: true,
+                markers: markers,
                 initialCameraPosition:
                     const CameraPosition(target: LatLng(0, 0), zoom: 3),
               )),
@@ -370,6 +444,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
+    setState(() {});
   }
 
   BoxDecoration _widgetBorder() {
