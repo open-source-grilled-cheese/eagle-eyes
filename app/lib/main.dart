@@ -291,7 +291,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return Text('${snapshot.error}');
                 }
                 // By default, show a loading spinner.
-                return const CircularProgressIndicator();
+                return const LoadingIndicator();
               },
             ),
 
@@ -304,7 +304,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return Text('${snapshot.error}');
                 }
                 // By default, show a loading spinner.
-                return const CircularProgressIndicator();
+                return const LoadingIndicator();
               },
             ),
             Card(
@@ -319,7 +319,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       return Text('${snapshot.error}');
                     }
                     // By default, show a loading spinner.
-                    return const CircularProgressIndicator();
+                    return const LoadingIndicator();
                   },
                 ),
               ),
@@ -351,7 +351,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return Text('${snapshot.error}');
                 }
                 // By default, show a loading spinner.
-                return const CircularProgressIndicator();
+                return const LoadingIndicator();
               },
             ),
             SizedBox(
@@ -429,7 +429,7 @@ class _MyHomePageState extends State<MyHomePage> {
             margin: const EdgeInsets.all(8.0),
             width: 50.0,
             height: 50.0,
-            child: const CircularProgressIndicator(),
+            child: const LoadingIndicator(),
           );
         } else if (playing != true) {
           return IconButton(
@@ -545,4 +545,16 @@ class DurationState {
   final Duration progress;
   final Duration buffered;
   final Duration? total;
+}
+
+class LoadingIndicator extends StatelessWidget {
+  const LoadingIndicator({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+        width: 50,
+        height: 50,
+        child: Center(child: CircularProgressIndicator()));
+  }
 }
