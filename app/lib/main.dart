@@ -357,6 +357,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(' (${o.bird.sciName})',
+                    textScaleFactor: 0.9,
                     style: const TextStyle(fontStyle: FontStyle.italic)),
               ],
             ),
