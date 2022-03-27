@@ -34,4 +34,12 @@ class Bird {
         coords: [],
         validBird: false);
   }
+
+  Map<String, dynamic> toJson() => {
+        'speciesCode': spCode,
+        'comName': comName,
+        'sciName': sciName,
+        'obsDt': obsDt,
+        'howMany': howMany
+      };
 }

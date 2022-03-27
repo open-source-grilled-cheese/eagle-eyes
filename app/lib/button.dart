@@ -1,11 +1,11 @@
-import 'dart:math';
-//flutter run --no-sound-null-safety
 //because I can't figure out the migration tool
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
 class FoundButton extends StatefulWidget {
-  const FoundButton({Key? key}) : super(key: key);
+  final VoidCallback onPress;
+  const FoundButton({Key? key, required this.onPress}) : super(key: key);
+
   @override
   _FoundButtonState createState() => _FoundButtonState();
 }
@@ -47,7 +47,8 @@ class _FoundButtonState extends State<FoundButton> {
               ),
               onPressed: () => {
                 if (_controller.state == ConfettiControllerState.stopped)
-                  _controller.play(),
+                  {_controller.play()},
+                widget.onPress()
               },
             ),
           ),
