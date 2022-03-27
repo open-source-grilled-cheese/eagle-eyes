@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart';
 import 'bird.dart';
@@ -53,11 +54,15 @@ Future<String> fetchBirdID(Future<Bird> birdFuture) async {
 }
 
 Future<Bird> deferredBird() async {
-  return const Bird(
+  return Bird(
       comName: 'American crow',
       sciName: 'Oenanthe cypriaca',
       spCode: 'amecro',
       howMany: 0,
+      lat: 0,
+      lng: 0,
+      validBird: true,
+      coords: [LatLng(0, 0)],
       obsDt: 'now');
 }
 
