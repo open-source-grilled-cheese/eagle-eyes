@@ -290,7 +290,6 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
     await Future.delayed(const Duration(seconds: 3));
-    controller.setMapStyle("[]");
   }
 
   void _setUpAudio(String name) async {
