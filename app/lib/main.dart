@@ -11,6 +11,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -30,7 +31,8 @@ Future main() async {
 
   // creates collection storage
   if (box.get('collection') == null) {
-    box.put('collection', []);
+    List<String> l = [];
+    box.put('collection', l);
   }
 
   print("Hello there");
@@ -68,7 +70,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Eagle Eyes',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -81,7 +83,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.teal,
       ),
-      home: const MyHomePage(title: 'Eagle Eyes: Bird of the Day'),
+      home: const MyHomePage(title: 'Eagle Eyes'),
     );
   }
 }
@@ -237,6 +239,8 @@ class _MyHomePageState extends State<MyHomePage> {
   late Future<String> description;
   late Future<LocationData> location;
 
+  String subtitle = "Bird of the Day";
+
   int _selectedIndex = 0;
 
   static const TextStyle optionStyle =
@@ -245,6 +249,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      if (index == 0) {
+        subtitle = 'Bird of the Day';
+      } else {
+        subtitle = 'Past Observations';
+      }
     });
   }
 
@@ -269,6 +278,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    // Hive.box('localstorage').clear();
     location = Location().getLocation();
     futureAlbum = fetchBirds(location);
     description = fetchBirdInfo(futureAlbum);
@@ -291,53 +301,106 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
+  void onFoundButtonPressed() async {
+    log("pressed found");
+    var box = Hive.box('localstorage');
+    List<String> collection = box.get('collection').cast<String>();
+    Bird bird = await futureAlbum;
+    LocationData loc = await location;
+    DateTime now = DateTime.now();
+    Observation obs =
+        Observation(bird, now, LatLng(loc.latitude!, loc.longitude!));
+    collection.add(jsonEncode(obs));
+    box.put('collection', collection);
+  }
+
+  List<Widget> createCollection() {
+    List<Widget> observations = <Widget>[];
+    var box = Hive.box('localstorage');
+    List collection = box.get('collection');
+    for (String obsJson in collection) {
+      Map<String, dynamic> obs = jsonDecode(obsJson);
+      Observation o = Observation.fromJson(obs);
+      observations.add(Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(
+              children: [
+                Text(
+                  o.bird.comName,
+                  textScaleFactor: 1.5,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(' (${o.bird.sciName})',
+                    style: const TextStyle(fontStyle: FontStyle.italic)),
+              ],
+            ),
+            Text(
+                'Recorded on ${o.time.month} ${o.time.day}, ${o.time.year} at ${o.time.hour}:${o.time.minute}'),
+            Text('Location: ${o.location.latitude},${o.location.longitude}'),
+          ]),
+        ),
+      ));
+    }
+    return observations;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text('${widget.title}: $subtitle'),
       ),
       body: Center(
           // Center is a layout widget. It takes a single child and positions it
           // in the middle of the parent.
           child: (_selectedIndex == 0)
-              ? ListView(
-                  padding: const EdgeInsets.all(12.0),
-                  children: <Widget>[
-                      // Bird Name
-                      FutureBuilder<Bird>(
-                        future: futureAlbum,
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            return BirdNameCard(bird: snapshot.data!);
-                          } else if (snapshot.hasError) {
-                            return Text('${snapshot.error}');
-                          }
-                          // By default, show a loading spinner.
-                          return const LoadingIndicator();
-                        },
-                      ),
+              ? KeepAlive(
+                  keepAlive: true,
+                  child: ListView(
+                      padding: const EdgeInsets.all(12.0),
+                      children: <Widget>[
+                        // Bird Name
+                        FutureBuilder<Bird>(
+                          future: futureAlbum,
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              return BirdNameCard(bird: snapshot.data!);
+                            } else if (snapshot.hasError) {
+                              return Text('${snapshot.error}');
+                            }
+                            // By default, show a loading spinner.
+                            return const LoadingIndicator();
+                          },
+                        ),
 
-                      FutureBuilder<Bird>(
-                        future: futureAlbum,
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            return BirdPhotoCarousel(bird: snapshot.data!);
-                          } else if (snapshot.hasError) {
-                            return Text('${snapshot.error}');
-                          }
-                          // By default, show a loading spinner.
-                          return const LoadingIndicator();
-                        },
-                      ),
-                      Card(
-                        child: Padding(
+                        FutureBuilder<Bird>(
+                          future: futureAlbum,
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              return BirdPhotoCarousel(bird: snapshot.data!);
+                            } else if (snapshot.hasError) {
+                              return Text('${snapshot.error}');
+                            }
+                            // By default, show a loading spinner.
+                            return const LoadingIndicator();
+                          },
+                        ),
+                        Padding(
                           padding: const EdgeInsets.all(12.0),
-                          child: FutureBuilder<String>(
-                            future: description,
+                          child: FutureBuilder<Bird>(
+                            future: futureAlbum,
                             builder: (context, snapshot) {
                               if (snapshot.hasData) {
-                                return Text(snapshot.data!);
+                                return ElevatedButton(
+                                  onPressed: () {
+                                    launch(
+                                        'https://ebird.org/species/${snapshot.data!.spCode}');
+                                  },
+                                  child: const Text('More Information'),
+                                );
                               } else if (snapshot.hasError) {
                                 return Text('${snapshot.error}');
                               }
@@ -346,55 +409,69 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           ),
                         ),
-                      ),
-                      // Bird Photo
-                      // Birdcall Player
-                      FutureBuilder<Bird>(
-                        future: futureAlbum,
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            _setUpAudio(snapshot.data!.sciName);
-                            return Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(20.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const SizedBox(height: 20),
-                                    Container(
-                                      decoration: _widgetBorder(),
-                                      child: _progressBar(),
-                                    ),
-                                    _playButton(),
-                                  ],
+                        // Bird Photo
+                        // Birdcall Player
+                        FutureBuilder<Bird>(
+                          future: futureAlbum,
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              _setUpAudio(snapshot.data!.sciName);
+                              return Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Sample Call',
+                                        textScaleFactor: 1.5,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      Container(
+                                        decoration: _widgetBorder(),
+                                        child: _progressBar(),
+                                      ),
+                                      _playButton(),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          } else if (snapshot.hasError) {
-                            return Text('${snapshot.error}');
-                          }
-                          // By default, show a loading spinner.
-                          return const LoadingIndicator();
-                        },
-                      ),
-                      SizedBox(
-                        height: 500,
-                        child: Card(
-                            child: GoogleMap(
-                          onMapCreated: _onMapCreated,
-                          padding: const EdgeInsets.all(8.0),
-                          myLocationEnabled: true,
-                          initialCameraPosition: const CameraPosition(
-                              target: LatLng(0, 0), zoom: 3),
-                        )),
-                      ),
-                      const FoundButton(),
-                    ])
+                              );
+                            } else if (snapshot.hasError) {
+                              return Text('${snapshot.error}');
+                            }
+                            // By default, show a loading spinner.
+                            return const LoadingIndicator();
+                          },
+                        ),
+                        SizedBox(
+                          height: 500,
+                          child: Card(
+                              child: GoogleMap(
+                            onMapCreated: _onMapCreated,
+                            padding: const EdgeInsets.all(8.0),
+                            myLocationEnabled: true,
+                            initialCameraPosition: const CameraPosition(
+                                target: LatLng(0, 0), zoom: 3),
+                          )),
+                        ),
+                        FutureBuilder<Bird>(
+                            future: futureAlbum,
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                return FoundButton(
+                                  onPress: onFoundButtonPressed,
+                                );
+                              } else if (snapshot.hasError) {
+                                return Text('${snapshot.error}');
+                              }
+                              // By default, show a loading spinner.
+                              return const LoadingIndicator();
+                            })
+                      ]),
+                )
               : ListView(
-                  padding: const EdgeInsets.all(12.0),
-                  children: const <Widget>[
-                      Card(child: Text("Collection Gallery"))
-                    ])),
+                  children: createCollection(),
+                )),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -407,7 +484,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.amber[800],
+        selectedItemColor: Colors.teal,
         onTap: _onItemTapped,
       ),
     );
@@ -598,4 +675,25 @@ class LoadingIndicator extends StatelessWidget {
         height: 50,
         child: Center(child: CircularProgressIndicator()));
   }
+}
+
+class Observation {
+  final Bird bird;
+  final DateTime time;
+  final LatLng location;
+  const Observation(this.bird, this.time, this.location);
+
+  factory Observation.fromJson(Map<String, dynamic> json) {
+    return Observation(
+        Bird.fromJson(json['bird']),
+        DateTime.parse(json['time']),
+        LatLng(json['latitude'], json['longitude']));
+  }
+
+  Map<String, dynamic> toJson() => {
+        'bird': bird.toJson(),
+        'time': time.toString(),
+        'latitude': location.latitude,
+        'longitude': location.longitude
+      };
 }

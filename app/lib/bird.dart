@@ -22,4 +22,12 @@ class Bird {
       howMany: json['howMany'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'speciesCode': spCode,
+        'comName': comName,
+        'sciName': sciName,
+        'obsDt': obsDt,
+        'howMany': howMany
+      };
 }
