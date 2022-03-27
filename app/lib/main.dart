@@ -295,6 +295,7 @@ class _MyHomePageState extends State<MyHomePage> {
             zoom: 15),
       ),
     );
+    await Future.delayed(Duration(seconds: 3));
     controller.setMapStyle("[]");
   }
 
@@ -443,48 +444,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           future: futureAlbum,
                           builder: (context, snapshot) {
                             if (snapshot.hasData) {
-                              markers.addAll([
-                                Marker(
-                                  markerId: MarkerId('value0'),
-                                  position: snapshot.data!.coords[0],
-                                ),
-                                Marker(
-                                  markerId: MarkerId('value2'),
-                                  position: snapshot.data!.coords[1],
-                                ),
-                                Marker(
-                                  markerId: MarkerId('value3'),
-                                  position: snapshot.data!.coords[3],
-                                ),
-                                Marker(
-                                  markerId: MarkerId('value4'),
-                                  position: snapshot.data!.coords[3],
-                                ),
-                                Marker(
-                                  markerId: MarkerId('valu5'),
-                                  position: snapshot.data!.coords[4],
-                                ),
-                                Marker(
-                                  markerId: MarkerId('value6'),
-                                  position: snapshot.data!.coords[5],
-                                ),
-                                Marker(
-                                  position: snapshot.data!.coords[6],
-                                  markerId: MarkerId('value7'),
-                                ),
-                                Marker(
-                                  markerId: MarkerId('value8'),
-                                  position: snapshot.data!.coords[7],
-                                ),
-                                Marker(
-                                  markerId: MarkerId('value9'),
-                                  position: snapshot.data!.coords[9],
-                                ),
-                                Marker(
-                                  position: snapshot.data!.coords[9],
-                                  markerId: MarkerId('value10'),
-                                )
-                              ]);
                               _setUpAudio(snapshot.data!.sciName);
                               return Card(
                                 child: Padding(
@@ -513,18 +472,70 @@ class _MyHomePageState extends State<MyHomePage> {
                             return const LoadingIndicator();
                           },
                         ),
-                        SizedBox(
-                          height: 500,
-                          child: Card(
-                              child: GoogleMap(
-                            onMapCreated: _onMapCreated,
-                            padding: const EdgeInsets.all(8.0),
-                            myLocationEnabled: true,
-                            markers: markers,
-                            initialCameraPosition: const CameraPosition(
-                                target: LatLng(0, 0), zoom: 3),
-                          )),
-                        ),
+                        FutureBuilder<Bird>(
+                            future: futureAlbum,
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                markers.addAll([
+                                  Marker(
+                                    markerId: MarkerId('value0'),
+                                    position: snapshot.data!.coords[0],
+                                  ),
+                                  Marker(
+                                    markerId: MarkerId('value2'),
+                                    position: snapshot.data!.coords[1],
+                                  ),
+                                  Marker(
+                                    markerId: MarkerId('value3'),
+                                    position: snapshot.data!.coords[3],
+                                  ),
+                                  Marker(
+                                    markerId: MarkerId('value4'),
+                                    position: snapshot.data!.coords[3],
+                                  ),
+                                  Marker(
+                                    markerId: MarkerId('valu5'),
+                                    position: snapshot.data!.coords[4],
+                                  ),
+                                  Marker(
+                                    markerId: MarkerId('value6'),
+                                    position: snapshot.data!.coords[5],
+                                  ),
+                                  Marker(
+                                    position: snapshot.data!.coords[6],
+                                    markerId: MarkerId('value7'),
+                                  ),
+                                  Marker(
+                                    markerId: MarkerId('value8'),
+                                    position: snapshot.data!.coords[7],
+                                  ),
+                                  Marker(
+                                    markerId: MarkerId('value9'),
+                                    position: snapshot.data!.coords[9],
+                                  ),
+                                  Marker(
+                                    position: snapshot.data!.coords[9],
+                                    markerId: MarkerId('value10'),
+                                  )
+                                ]);
+
+                                return SizedBox(
+                                  height: 500,
+                                  child: Card(
+                                      child: GoogleMap(
+                                    onMapCreated: _onMapCreated,
+                                    padding: const EdgeInsets.all(8.0),
+                                    myLocationEnabled: true,
+                                    markers: markers,
+                                    initialCameraPosition: const CameraPosition(
+                                        target: LatLng(0, 0), zoom: 3),
+                                  )),
+                                );
+                                ;
+                              }
+                              return Text("");
+                            }),
+
                         FutureBuilder<Bird>(
                             future: futureAlbum,
                             builder: (context, snapshot) {
@@ -574,10 +585,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return StreamBuilder<DurationState>(
       stream: durationState,
       builder: (context, snapshot) {
-        markers.add(Marker(
-          markerId: MarkerId('value0'),
-          position: LatLng(-1000, 1000),
-        ));
         final durationState = snapshot.data;
         final progress = durationState?.progress ?? Duration.zero;
         final buffered = durationState?.buffered ?? Duration.zero;
