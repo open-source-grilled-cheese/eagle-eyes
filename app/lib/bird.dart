@@ -40,6 +40,10 @@ class Bird {
         'comName': comName,
         'sciName': sciName,
         'obsDt': obsDt,
-        'howMany': howMany
+        'howMany': howMany,
+        'lat': lat,
+        'lng': lng,
+        'validBird': validBird,
+        'coords': coords
       };
 }

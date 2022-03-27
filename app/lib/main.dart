@@ -292,7 +292,7 @@ class _MyHomePageState extends State<MyHomePage> {
         CameraPosition(
             target:
                 LatLng(currentLocation.latitude!, currentLocation.longitude!),
-            zoom: 15),
+            zoom: 11.5),
       ),
     );
     await Future.delayed(Duration(seconds: 3));
@@ -388,168 +388,202 @@ class _MyHomePageState extends State<MyHomePage> {
           child: (_selectedIndex == 0)
               ? KeepAlive(
                   keepAlive: true,
-                  child: ListView(
+                  child:
+                      ListView(padding: const EdgeInsets.all(12.0), children: <
+                          Widget>[
+                    // Bird Name
+                    FutureBuilder<Bird>(
+                      future: futureAlbum,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return BirdNameCard(bird: snapshot.data!);
+                        } else if (snapshot.hasError) {
+                          return Text('${snapshot.error}');
+                        }
+                        // By default, show a loading spinner.
+                        return const Center(
+                            child: Text(
+                          'Retrieving bird of the day...',
+                          textScaleFactor: 1.5,
+                        ));
+                      },
+                    ),
+
+                    FutureBuilder<Bird>(
+                      future: futureAlbum,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return BirdPhotoCarousel(bird: snapshot.data!);
+                        } else if (snapshot.hasError) {
+                          return Text('${snapshot.error}');
+                        }
+                        // By default, show a loading spinner.
+                        return const LoadingIndicator();
+                      },
+                    ),
+                    Padding(
                       padding: const EdgeInsets.all(12.0),
-                      children: <Widget>[
-                        // Bird Name
-                        FutureBuilder<Bird>(
-                          future: futureAlbum,
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              return BirdNameCard(bird: snapshot.data!);
-                            } else if (snapshot.hasError) {
-                              return Text('${snapshot.error}');
-                            }
-                            // By default, show a loading spinner.
-                            return const LoadingIndicator();
-                          },
-                        ),
+                      child: FutureBuilder<Bird>(
+                        future: futureAlbum,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            return ElevatedButton(
+                              onPressed: () {
+                                launch(
+                                    'https://ebird.org/species/${snapshot.data!.spCode}');
+                              },
+                              child: const Text('More Information'),
+                            );
+                          } else if (snapshot.hasError) {
+                            return Text('${snapshot.error}');
+                          }
+                          // By default, show a loading spinner.
+                          return const LoadingIndicator();
+                        },
+                      ),
+                    ),
+                    // Bird Photo
+                    // Birdcall Player
+                    FutureBuilder<Bird>(
+                      future: futureAlbum,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          _setUpAudio(snapshot.data!.sciName);
+                          return Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'Sample Call',
+                                    textScaleFactor: 1.5,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Container(
+                                    decoration: _widgetBorder(),
+                                    child: _progressBar(),
+                                  ),
+                                  _playButton(),
+                                ],
+                              ),
+                            ),
+                          );
+                        } else if (snapshot.hasError) {
+                          return Text('${snapshot.error}');
+                        }
+                        // By default, show a loading spinner.
+                        return const LoadingIndicator();
+                      },
+                    ),
+                    FutureBuilder<Bird>(
+                        future: futureAlbum,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            markers.addAll([
+                              Marker(
+                                markerId: const MarkerId('value0'),
+                                position: snapshot.data!.coords[0],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[0]}'),
+                              ),
+                              Marker(
+                                markerId: const MarkerId('value2'),
+                                position: snapshot.data!.coords[1],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[1]}'),
+                              ),
+                              Marker(
+                                markerId: const MarkerId('value3'),
+                                position: snapshot.data!.coords[3],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[2]}'),
+                              ),
+                              Marker(
+                                markerId: const MarkerId('value4'),
+                                position: snapshot.data!.coords[3],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[3]}'),
+                              ),
+                              Marker(
+                                markerId: const MarkerId('valu5'),
+                                position: snapshot.data!.coords[4],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[4]}'),
+                              ),
+                              Marker(
+                                markerId: const MarkerId('value6'),
+                                position: snapshot.data!.coords[5],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[5]}'),
+                              ),
+                              Marker(
+                                position: snapshot.data!.coords[6],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[6]}'),
+                                markerId: const MarkerId('value7'),
+                              ),
+                              Marker(
+                                markerId: const MarkerId('value8'),
+                                position: snapshot.data!.coords[7],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[7]}'),
+                              ),
+                              Marker(
+                                markerId: const MarkerId('value9'),
+                                position: snapshot.data!.coords[9],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[8]}'),
+                              ),
+                              Marker(
+                                markerId: const MarkerId('value10'),
+                                position: snapshot.data!.coords[9],
+                                infoWindow: InfoWindow(
+                                    title: '${snapshot.data!.howMany} Spotted',
+                                    snippet: '${snapshot.data!.coords[9]}'),
+                              )
+                            ]);
 
-                        FutureBuilder<Bird>(
-                          future: futureAlbum,
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              return BirdPhotoCarousel(bird: snapshot.data!);
-                            } else if (snapshot.hasError) {
-                              return Text('${snapshot.error}');
-                            }
-                            // By default, show a loading spinner.
-                            return const LoadingIndicator();
-                          },
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: FutureBuilder<Bird>(
-                            future: futureAlbum,
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                return ElevatedButton(
-                                  onPressed: () {
-                                    launch(
-                                        'https://ebird.org/species/${snapshot.data!.spCode}');
-                                  },
-                                  child: const Text('More Information'),
-                                );
-                              } else if (snapshot.hasError) {
-                                return Text('${snapshot.error}');
-                              }
-                              // By default, show a loading spinner.
-                              return const LoadingIndicator();
-                            },
-                          ),
-                        ),
-                        // Bird Photo
-                        // Birdcall Player
-                        FutureBuilder<Bird>(
-                          future: futureAlbum,
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              _setUpAudio(snapshot.data!.sciName);
-                              return Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'Sample Call',
-                                        textScaleFactor: 1.5,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      Container(
-                                        decoration: _widgetBorder(),
-                                        child: _progressBar(),
-                                      ),
-                                      _playButton(),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            } else if (snapshot.hasError) {
-                              return Text('${snapshot.error}');
-                            }
-                            // By default, show a loading spinner.
-                            return const LoadingIndicator();
-                          },
-                        ),
-                        FutureBuilder<Bird>(
-                            future: futureAlbum,
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                markers.addAll([
-                                  Marker(
-                                    markerId: MarkerId('value0'),
-                                    position: snapshot.data!.coords[0],
-                                  ),
-                                  Marker(
-                                    markerId: MarkerId('value2'),
-                                    position: snapshot.data!.coords[1],
-                                  ),
-                                  Marker(
-                                    markerId: MarkerId('value3'),
-                                    position: snapshot.data!.coords[3],
-                                  ),
-                                  Marker(
-                                    markerId: MarkerId('value4'),
-                                    position: snapshot.data!.coords[3],
-                                  ),
-                                  Marker(
-                                    markerId: MarkerId('valu5'),
-                                    position: snapshot.data!.coords[4],
-                                  ),
-                                  Marker(
-                                    markerId: MarkerId('value6'),
-                                    position: snapshot.data!.coords[5],
-                                  ),
-                                  Marker(
-                                    position: snapshot.data!.coords[6],
-                                    markerId: MarkerId('value7'),
-                                  ),
-                                  Marker(
-                                    markerId: MarkerId('value8'),
-                                    position: snapshot.data!.coords[7],
-                                  ),
-                                  Marker(
-                                    markerId: MarkerId('value9'),
-                                    position: snapshot.data!.coords[9],
-                                  ),
-                                  Marker(
-                                    position: snapshot.data!.coords[9],
-                                    markerId: MarkerId('value10'),
-                                  )
-                                ]);
+                            return SizedBox(
+                              height: 500,
+                              child: Card(
+                                  child: GoogleMap(
+                                onMapCreated: _onMapCreated,
+                                padding: const EdgeInsets.all(8.0),
+                                myLocationEnabled: true,
+                                markers: markers,
+                                initialCameraPosition: const CameraPosition(
+                                    target: LatLng(0, 0), zoom: 3),
+                              )),
+                            );
+                            ;
+                          }
+                          return Text("");
+                        }),
 
-                                return SizedBox(
-                                  height: 500,
-                                  child: Card(
-                                      child: GoogleMap(
-                                    onMapCreated: _onMapCreated,
-                                    padding: const EdgeInsets.all(8.0),
-                                    myLocationEnabled: true,
-                                    markers: markers,
-                                    initialCameraPosition: const CameraPosition(
-                                        target: LatLng(0, 0), zoom: 3),
-                                  )),
-                                );
-                                ;
-                              }
-                              return Text("");
-                            }),
-
-                        FutureBuilder<Bird>(
-                            future: futureAlbum,
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                return FoundButton(
-                                  onPress: onFoundButtonPressed,
-                                );
-                              } else if (snapshot.hasError) {
-                                return Text('${snapshot.error}');
-                              }
-                              // By default, show a loading spinner.
-                              return const LoadingIndicator();
-                            })
-                      ]),
+                    FutureBuilder<Bird>(
+                        future: futureAlbum,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            return FoundButton(
+                              onPress: onFoundButtonPressed,
+                            );
+                          } else if (snapshot.hasError) {
+                            return Text('${snapshot.error}');
+                          }
+                          // By default, show a loading spinner.
+                          return const LoadingIndicator();
+                        })
+                  ]),
                 )
               : ListView(
                   children: createCollection(),
@@ -558,11 +592,11 @@ class _MyHomePageState extends State<MyHomePage> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Home',
+            label: 'Bird of the Day',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book),
-            label: 'Gallery',
+            label: 'Past Observations',
           ),
         ],
         currentIndex: _selectedIndex,

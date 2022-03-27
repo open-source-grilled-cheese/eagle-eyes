@@ -65,9 +65,3 @@ Future<Bird> deferredBird() async {
       coords: [LatLng(0, 0)],
       obsDt: 'now');
 }
-
-void main() async {
-  String id = await fetchBirdID(deferredBird());
-  print(id);
-  print(fetchBirdBlurb(id));
-}
