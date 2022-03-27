@@ -27,6 +27,13 @@ Future main() async {
   await dotenv.load(fileName: ".env");
 
   var box = Hive.box('localstorage');
+
+  // creates collection storage
+  if (box.get('collection') == null) {
+    box.put('collection', []);
+  }
+
+  print("Hello there");
   // print(box.get('suggestedBirds').keys.toString());
   if (box.get('suggestedBirds') == null) {
     box.put('suggestedBirds', Map());
@@ -230,6 +237,17 @@ class _MyHomePageState extends State<MyHomePage> {
   late Future<String> description;
   late Future<LocationData> location;
 
+  int _selectedIndex = 0;
+
+  static const TextStyle optionStyle =
+      TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   void _onMapCreated(GoogleMapController controller) async {
     log('map initialized');
     final currentLocation = await location;
@@ -256,13 +274,14 @@ class _MyHomePageState extends State<MyHomePage> {
     description = fetchBirdInfo(futureAlbum);
     player = AudioPlayer();
     durationState = Rx.combineLatest2<Duration, PlaybackEvent, DurationState>(
-        player.positionStream,
-        player.playbackEventStream,
-        (position, playbackEvent) => DurationState(
-              progress: position,
-              buffered: playbackEvent.bufferedPosition,
-              total: playbackEvent.duration,
-            )); // warning: example does more than this, including setting the URL here.. this could cause issues later
+            player.positionStream,
+            player.playbackEventStream,
+            (position, playbackEvent) => DurationState(
+                  progress: position,
+                  buffered: playbackEvent.bufferedPosition,
+                  total: playbackEvent.duration,
+                ))
+        .asBroadcastStream(); // warning: example does more than this, including setting the URL here.. this could cause issues later
   }
 
   // disposes audio player and resources when the app closes
@@ -279,98 +298,117 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: ListView(
-          padding: const EdgeInsets.all(12.0),
-          children: <Widget>[
-            // Bird Name
-            FutureBuilder<Bird>(
-              future: futureAlbum,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return BirdNameCard(bird: snapshot.data!);
-                } else if (snapshot.hasError) {
-                  return Text('${snapshot.error}');
-                }
-                // By default, show a loading spinner.
-                return const LoadingIndicator();
-              },
-            ),
-
-            FutureBuilder<Bird>(
-              future: futureAlbum,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return BirdPhotoCarousel(bird: snapshot.data!);
-                } else if (snapshot.hasError) {
-                  return Text('${snapshot.error}');
-                }
-                // By default, show a loading spinner.
-                return const LoadingIndicator();
-              },
-            ),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: FutureBuilder<String>(
-                  future: description,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      return Text(snapshot.data!);
-                    } else if (snapshot.hasError) {
-                      return Text('${snapshot.error}');
-                    }
-                    // By default, show a loading spinner.
-                    return const LoadingIndicator();
-                  },
-                ),
-              ),
-            ),
-            // Bird Photo
-            // Birdcall Player
-            FutureBuilder<Bird>(
-              future: futureAlbum,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  _setUpAudio(snapshot.data!.sciName);
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(height: 20),
-                          Container(
-                            decoration: _widgetBorder(),
-                            child: _progressBar(),
-                          ),
-                          _playButton(),
-                        ],
+          // Center is a layout widget. It takes a single child and positions it
+          // in the middle of the parent.
+          child: (_selectedIndex == 0)
+              ? ListView(
+                  padding: const EdgeInsets.all(12.0),
+                  children: <Widget>[
+                      // Bird Name
+                      FutureBuilder<Bird>(
+                        future: futureAlbum,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            return BirdNameCard(bird: snapshot.data!);
+                          } else if (snapshot.hasError) {
+                            return Text('${snapshot.error}');
+                          }
+                          // By default, show a loading spinner.
+                          return const LoadingIndicator();
+                        },
                       ),
-                    ),
-                  );
-                } else if (snapshot.hasError) {
-                  return Text('${snapshot.error}');
-                }
-                // By default, show a loading spinner.
-                return const LoadingIndicator();
-              },
-            ),
-            SizedBox(
-              height: 500,
-              child: Card(
-                  child: GoogleMap(
-                onMapCreated: _onMapCreated,
-                padding: const EdgeInsets.all(8.0),
-                myLocationEnabled: true,
-                initialCameraPosition:
-                    const CameraPosition(target: LatLng(0, 0), zoom: 3),
-              )),
-            ),
-            const FoundButton(),
-          ],
-        ),
+
+                      FutureBuilder<Bird>(
+                        future: futureAlbum,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            return BirdPhotoCarousel(bird: snapshot.data!);
+                          } else if (snapshot.hasError) {
+                            return Text('${snapshot.error}');
+                          }
+                          // By default, show a loading spinner.
+                          return const LoadingIndicator();
+                        },
+                      ),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: FutureBuilder<String>(
+                            future: description,
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                return Text(snapshot.data!);
+                              } else if (snapshot.hasError) {
+                                return Text('${snapshot.error}');
+                              }
+                              // By default, show a loading spinner.
+                              return const LoadingIndicator();
+                            },
+                          ),
+                        ),
+                      ),
+                      // Bird Photo
+                      // Birdcall Player
+                      FutureBuilder<Bird>(
+                        future: futureAlbum,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            _setUpAudio(snapshot.data!.sciName);
+                            return Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      decoration: _widgetBorder(),
+                                      child: _progressBar(),
+                                    ),
+                                    _playButton(),
+                                  ],
+                                ),
+                              ),
+                            );
+                          } else if (snapshot.hasError) {
+                            return Text('${snapshot.error}');
+                          }
+                          // By default, show a loading spinner.
+                          return const LoadingIndicator();
+                        },
+                      ),
+                      SizedBox(
+                        height: 500,
+                        child: Card(
+                            child: GoogleMap(
+                          onMapCreated: _onMapCreated,
+                          padding: const EdgeInsets.all(8.0),
+                          myLocationEnabled: true,
+                          initialCameraPosition: const CameraPosition(
+                              target: LatLng(0, 0), zoom: 3),
+                        )),
+                      ),
+                      const FoundButton(),
+                    ])
+              : ListView(
+                  padding: const EdgeInsets.all(12.0),
+                  children: const <Widget>[
+                      Card(child: Text("Collection Gallery"))
+                    ])),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book),
+            label: 'Gallery',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        onTap: _onItemTapped,
       ),
     );
   }
