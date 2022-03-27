@@ -21,14 +21,14 @@ Future<String> fetchBirdInfo(Future<Bird> birdFuture) async {
 }
 
 Future<String> fetchBirdBlurb(String id) async {
-  String url = 'https://avibase.bsc-eoc.org/species.jsp?lang=EN&avibaseid=$id';
-  final response = await http.get(Uri.parse(url));
-  if (response.statusCode == 200) {
-    var doc = parse(response.body);
-    for (var p in doc.getElementsByTagName('p')) {
-      print(p.text);
-    }
-  }
+  // String url = 'https://avibase.bsc-eoc.org/species.jsp?lang=EN&avibaseid=$id';
+  // final response = await http.get(Uri.parse(url));
+  // if (response.statusCode == 200) {
+  //   var doc = parse(response.body);
+  //   for (var p in doc.getElementsByTagName('p')) {
+  //     print(p.text);
+  //   }
+  // }
   return "";
 }
 
@@ -62,6 +62,6 @@ Future<Bird> deferredBird() async {
       lat: 0,
       lng: 0,
       validBird: true,
-      coords: [LatLng(0, 0)],
+      coords: [const LatLng(0, 0)],
       obsDt: 'now');
 }
