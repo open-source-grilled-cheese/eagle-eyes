@@ -21,12 +21,12 @@ import 'info.dart';
 import 'button.dart';
 
 Future main() async {
+  log('beginning...');
   await Hive.initFlutter();
   await Hive.openBox('localstorage');
   await dotenv.load(fileName: ".env");
 
   var box = Hive.box('localstorage');
-  print("Hello there");
   // print(box.get('suggestedBirds').keys.toString());
   if (box.get('suggestedBirds') == null) {
     box.put('suggestedBirds', Map());
@@ -42,7 +42,8 @@ Future main() async {
     box.put('date', DateTime.now());
     updateStoredBirds(box);
   }
-
+  log('loaded stored birds');
+  log('starting app...');
   runApp(const MyApp());
 }
 
@@ -106,11 +107,12 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-Future<Bird> fetchBirds() async {
-  LocationData currLoc = await Location().getLocation();
+Future<Bird> fetchBirds(Future<LocationData> location) async {
+  log('fetching bird data...');
+  LocationData currLoc = await location;
   double? lat = currLoc.latitude;
   double? lng = currLoc.longitude;
-  log("hello people");
+  log("got location");
   log(lat.toString());
   //"https://api.ebird.org/v2/data/obs/geo/recent/cangoo?lat=$lat&lng=$lng"
   //'https://api.ebird.org/v2/data/obs/geo/recent?lat=$lat&lng=$lng&sort=species&maxResults=10000'
@@ -157,12 +159,12 @@ Future<Bird> fetchBirds() async {
         blacklist = [];
       }
     }
-
+    log('selected bird');
     return jsonObjs[selectedBird];
   } else {
     // If the server did not return a 200 OK response,
     // then throw an exception.
-    print(response.body);
+    log(response.body);
     throw Exception('Failed to load album');
   }
 }
@@ -198,7 +200,7 @@ Future<bool> checkBird(Bird bird, double? lat, double? lng, box) async {
       return true;
     }
   } else {
-    print(response.body);
+    log(response.body);
     throw Exception('Failed to look up species');
   }
 }
@@ -226,10 +228,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   late Future<Bird> futureAlbum;
   late Future<String> description;
+  late Future<LocationData> location;
 
   void _onMapCreated(GoogleMapController controller) async {
-    var location = Location();
-    final currentLocation = await location.getLocation();
+    log('map initialized');
+    final currentLocation = await location;
     controller.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
@@ -248,8 +251,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-
-    futureAlbum = fetchBirds();
+    location = Location().getLocation();
+    futureAlbum = fetchBirds(location);
     description = fetchBirdInfo(futureAlbum);
     player = AudioPlayer();
     durationState = Rx.combineLatest2<Duration, PlaybackEvent, DurationState>(

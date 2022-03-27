@@ -1,5 +1,3 @@
-import 'dart:math';
-//flutter run --no-sound-null-safety
 //because I can't figure out the migration tool
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
@@ -41,7 +42,7 @@ Future<List<String>> fetchBirdPhotosCSV(Bird bird, int numImages) async {
       try {
         NetworkImage(link);
       } on Exception catch (e) {
-        print("$e: failed to load $link");
+        log("$e: failed to load $link");
         continue;
       }
       links.add(link);
